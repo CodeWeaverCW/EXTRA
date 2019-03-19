@@ -6,7 +6,7 @@ from games to simulations. Very complicated programs.
 
 Of course, for backwards-compatibility, the spec won't be seeing any updates for a
 long time. So, I've taken it upon myself to write a quick preprocessor that gives
-EXAs some more macro support. Want to turn magic into science? Define labels in place
+EXAs some more macro support. Want to turn magic into science? Define variables in place
 of numbers. Need to insert some encoded data? Put raw data into the codebase, and let
 macros do the converting for you. Want to include code other people have written?
 Save it and import it as a library.
@@ -15,6 +15,8 @@ To be most familiar with developers, I've included a syntax that resembles Axiom
 Macro directives follow the @___ pattern, while interpolations look like @{___}.
 For the most complicated preprocessing, you actually write routines in a higher-level
 language: JavaScript, the same language used in Axiom's VirtualNetwork+.
+
+--CodeWeaver
 
 
 Quick Reference --
@@ -27,82 +29,69 @@ Quick Reference --
 
 COMMANDS:
 =========
-@REP N
-...
-@END
-	Inherited from Axiom's VM. Repeats the wrapped code N times. Good way to keep
-	a register open, or to save cycles. And yes, you can still do @{N,M} inside
-	your block of code to insert a number N, increasing by M each iteration.
-
-
-@NOP N
-	Special form of the @REP command, specifically for the NOOP instruction. Inserts
-	N NOOPs. Less verbose way of getting those EXA timings just right.
-
-
-@SLP N
-	Special form of the @REP command, specifically for the WAIT instruction. Inserts
-	N WAITs. Each WAIT corresponds to a single frame at 30 FPS on the TEC Redshift.
-
-
-@FNC L
+@JSC
 //
 @END
-@{L,N/S}
-	Attach a preprocessing function to an arbitrary label. JavaScript code goes in
-	between @FNC L and @END. This function can be called anywhere in the EXA code
-	via @{L}, or other JavaScript code like `L()`. Number/string arguments may
-	optionally be passed, each delimited with a comma. These arguments can be
-	accessed via the `arguments[]` pseudoarray in JavaScript. The return value of
-	the function will replace each reference to @{L}.
+	This macro is EXTRA's keystone. Inspired by recent web technologies, your
+	JavaScript code goes between these directives and other macros can reference
+	it. Variables, functions -- everything gets defined here in pure JavaScript,
+	just like the `<script>` tags in hypertext.
+	
+	You can have mulitple of these blocks in a single file. It may be pertinent
+	to define relevant variables etc. next to where they are used.
 
+
+@{//}
+	This macro is essentially a JavaScript `eval()`. You can directly reference
+	JavaScript symbols (variables, functions, etc) and their values will be
+	interpolated into your EXA code. You can also use more complicated expressions,
+	such as arithmetic and conditionals.
+
+
+@REP N//
+...
+@END
+	Inherited from Axiom's VM. Repeats the wrapped EXA code N times. Good way to
+	keep a register open, or to save cycles. And yes, you can still do @{N,M}
+	inside your block of code to insert a number N, increasing by M each iteration.
+	
+	In fact, you can use the new @{//} expression too, and they will be evaluated
+	for each repetition. To enable looping over arrays, the local variable `_R`
+	counts each repetition, starting from zero.
+	
+	N -- in @REP N -- can even be a JavaScript expression. It just must return
+	a number. (If your expression contains spaces, wrap it in `{}`.)
+	
 	Example:
-		@FNC WRITE;(text, repl_label)
-		let text = arguments[0];
-		let repl = arguments[1];
-		let exa_code = "";
-
-		let A = 'A'.charCodeAt(0);
-		let zero = '0'.charCodeAt(0);
-		for (let i=0; i<text.length; i++) {
-			let redshift_chr;
-			let chr = text[i];
-			let ascii = chr.charCodeAt(0);
-
-			if (/ /.test(chr))
-				redshift_chr = 300;
-			else if (/[A-Z]/.test(chr))
-				redshift_chr = ascii - A + 301;
-			else if (/[0-9]/.test(chr))
-				redshift_chr = ascii - zero + 327;
-			else if (/\./.test(chr))
-				redshift_chr = 337;
-			else if (/\?/.test(chr))
-				redshift_chr = 338;
-			else if (/\!/.test(chr))
-				redshift_chr = 339;
-
-			exa_code += "COPY " + redshift_chr + " GP\nCOPY " + (i*10) + " GX\nREPL " + repl + "\n";
-		}
-
-		return exa_code;
+		@JSC
+		var password = [8,9,3,2,7,1,9,4,9,5,1,2,5,2,6];
 		@END
-		
-		MARK TEXT_DISPLAY
-		  JUMP TEXT_DISPLAY
-		@{WRITE,HELLO WORLD!,TEXT_DISPLAY}
+		@REP {password.length}
+		COPY @{password[_R]} #AUTH
+		@END
 
 
-@DEF L R/N
-@{L}
-	Assign a value to an arbitrary label (like, a variable name). This value can
-	be referenced in EXA code via @{L}. It also becomes exposed to JavaScript as
-	a global variable, e.g. `let offset = L + 5;`.
+NOTE:	For macros with corresponding @END tokens (i.e. @JSC and @REP), you can also
+	fit them on a single line, instead, and drop the @END.
+	
+	Example:
+		@JSC var cycles = 10;
+		@REP {cycles} NOOP
+		; WAITS 10 CYCLES
 
 
 @USE S
-	Use preprocessor instructions from file T (i.e. include only macros).
+	Use preprocessor instructions from file S (i.e. include only macros). To import
+	raw JavaScript modules, you should still use JavaScript's `require()`, but to
+	include JavaScript from other EXTRA code, use this directive.
 
 
 @INC S
-	Include all of file T into this file (macros and EXA code).
+	Include all of file S into this file (macros and EXA code). Good way to treat
+	other EXA code like libraries.
+
+
+@TAB N
+	For this file's EXA code, convert all tabs to N spaces when preprocessing. A
+	warning will be produced if any line exceeds Axiom's length limit (24).
+	A value of 0 will remove all indentation.
