@@ -56,7 +56,7 @@ COMMANDS:
 	inside your block of code to insert a number N, increasing by M each iteration.
 	
 	In fact, you can use the new @{//} expression too, and they will be evaluated
-	for each repetition. To enable looping over arrays, the local variable `_R`
+	for each repetition. To enable looping over arrays, the local variable `$R`
 	counts each repetition, starting from zero.
 	
 	N -- in @REP N -- can even be a JavaScript expression. It just must return
@@ -67,7 +67,7 @@ COMMANDS:
 		var password = [8,9,3,2,7,1,9,4,9,5,1,2,5,2,6];
 		@END
 		@REP {password.length}
-		COPY @{password[_R]} #AUTH
+		COPY @{password[$R]} #AUTH
 		@END
 
 
