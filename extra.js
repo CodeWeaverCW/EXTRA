@@ -11,9 +11,10 @@ const __EXTRA = {
 	USE: {},
 	/* Recursively evaluate @USE macros in this EXA code snippet */
 	load: __exa_snippet__ => {
-		while (__EXTRA.captures = __EXTRA.regexp.exec(__exa_snippet__)) {
+		while (__EXTRA.captures = __EXTRA.regexp.exec(__exa_snippet__))
+			__EXTRA.load(__EXTRA.fs.readFileSync(__EXTRA.captures[0]), 'utf8');
 
-		}
+		__EXTRA.init(__exa_snippet__);
 	},
 	/* Evaluate all @JSC macros in this EXA code snippet */
 	init: __exa_snippet__ => __exa_snippet__.replace(/^\s*@JSC\s*(?:^([^]*?)^\s*@END|(.+)$)/gm, (__$$__, __$1__) => { eval(__$1__); return "" }),
@@ -44,13 +45,9 @@ for (__EXTRA.f=2; __EXTRA.f<process.argv.length; __EXTRA.f++) {
 	};
 
 
-	// @USE
+	// @USE & @JSC
 	__EXTRA.regexp = /^\s@USE\s*(?:\{(.+)\}|(\S.*))/m;	// No global flag `g` because we want to start from the top each time
 	__EXTRA.load(__EXTRA.exa_code);
-
-
-	// @JSC (JavaScript Code)
-	__EXTRA.init(__EXTRA.exa_code);
 
 
 	// @REP (repetitions)
