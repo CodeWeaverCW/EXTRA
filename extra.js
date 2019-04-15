@@ -85,4 +85,9 @@ for (__EXTRA.f=2; __EXTRA.f<process.argv.length; __EXTRA.f++) {
 	});
 	__EXTRA.regexp = /\t/gm;
 	__EXTRA.exa_code = __EXTRA.exa_code.replace(__EXTRA.regexp, " ".repeat(__EXTRA.tab));
+
+
+	/* Write resulting EXA code */
+	// At the moment, just write to STDOUT; later we'll be writing directly to EXAPUNKS data
+	console.log(process.argv[__EXTRA.f], ":\n\n", __EXTRA.exa_code, "\n\n\n");
 }
